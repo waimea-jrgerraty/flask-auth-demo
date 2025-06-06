@@ -3,11 +3,10 @@
 #-------------------------------------------------------
 
 # Compiled bytecode
-__pycache__/
+**/__pycache__/
 
 # Virtual Python environment
-venv/
-.venv/
+*venv/
 
 # Environment variables
 .env

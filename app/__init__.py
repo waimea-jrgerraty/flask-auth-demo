@@ -1,8 +1,9 @@
-#===========================================================
+# ===========================================================
 # App Creation and Launch
-#===========================================================
+# ===========================================================
 
 from flask import Flask, render_template, request, flash, redirect
+from werkzeug.security import generate_password_hash, check_password_hash
 import html
 
 from app.helpers.session import init_session
@@ -20,25 +21,25 @@ init_session(app)
 register_error_handlers(app)
 
 
-#-----------------------------------------------------------
+# -----------------------------------------------------------
 # Home page route
-#-----------------------------------------------------------
+# -----------------------------------------------------------
 @app.get("/")
 def index():
     return render_template("pages/home.jinja")
 
 
-#-----------------------------------------------------------
+# -----------------------------------------------------------
 # About page route
-#-----------------------------------------------------------
+# -----------------------------------------------------------
 @app.get("/about/")
 def about():
     return render_template("pages/about.jinja")
 
 
-#-----------------------------------------------------------
+# -----------------------------------------------------------
 # Things page route - Show all the things, and new thing form
-#-----------------------------------------------------------
+# -----------------------------------------------------------
 @app.get("/things/")
 @handle_db_errors
 def show_all_things():
@@ -52,17 +53,27 @@ def show_all_things():
         return render_template("pages/things.jinja", things=things)
 
 
-#-----------------------------------------------------------
+# -----------------------------------------------------------
 # Thing page route - Show details of a single thing
-#-----------------------------------------------------------
+# -----------------------------------------------------------
 @app.get("/thing/<int:id>")
 @handle_db_errors
 def show_one_thing(id):
     with connect_db() as client:
         # Get the thing details from the DB
-        sql = "SELECT id, name, price FROM things WHERE id=?"
+        sql = """
+            SELECT 
+                things.id,
+                things.name,
+                users.id AS userid,
+                users.username AS owner
+            FROM things 
+            JOIN users ON things.userid = users.id
+            WHERE things.id=?    
+        """
         values = [id]
         result = client.execute(sql, values)
+        print("AAAAAAAAAAA:", result)
 
         # Did we get a result?
         if result.rows:
@@ -75,24 +86,35 @@ def show_one_thing(id):
             return not_found_error()
 
 
-#-----------------------------------------------------------
+# -----------------------------------------------------------
+# Thing page route - Show details of a single thing
+# -----------------------------------------------------------
+@app.get("/signup/")
+def signup():
+    return render_template("pages/signup.jinja")
+
+
+@app.get("/signin/")
+def signin():
+    return render_template("pages/signin.jinja")
+
+
+# -----------------------------------------------------------
 # Route for adding a thing, using data posted from a form
-#-----------------------------------------------------------
+# -----------------------------------------------------------
 @app.post("/add")
 @handle_db_errors
 def add_a_thing():
     # Get the data from the form
-    name  = request.form.get("name")
-    price = request.form.get("price")
+    name = request.form.get("name")
 
     # Sanitise the inputs
     name = html.escape(name)
-    price = html.escape(price)
 
     with connect_db() as client:
         # Add the thing to the DB
-        sql = "INSERT INTO things (name, price) VALUES (?, ?)"
-        values = [name, price]
+        sql = "INSERT INTO things (name) VALUES (?)"
+        values = [name]
         client.execute(sql, values)
 
         # Go back to the home page
@@ -100,9 +122,9 @@ def add_a_thing():
         return redirect("/things")
 
 
-#-----------------------------------------------------------
+# -----------------------------------------------------------
 # Route for deleting a thing, Id given in the route
-#-----------------------------------------------------------
+# -----------------------------------------------------------
 @app.get("/delete/<int:id>")
 @handle_db_errors
 def delete_a_thing(id):
@@ -117,3 +139,36 @@ def delete_a_thing(id):
         return redirect("/things")
 
 
+@app.post("/register/")
+@handle_db_errors
+def register_user():
+    # Get the data from the form
+    name = request.form.get("name")
+    username = request.form.get("username")
+    password = request.form.get("password")
+
+    # Sanitise the inputs
+    name = html.escape(name)
+    username = html.escape(username)
+
+    # Hash the password
+    hash = generate_password_hash(password)
+
+    with connect_db() as client:
+        # Add the thing to the DB
+        sql = "INSERT OR IGNORE INTO users (name, username, hash) VALUES (?, ?, ?)"
+        values = [name, username, hash]
+        result = client.execute(sql, values)
+        if result.rows_affected == 0:
+            flash("Username already taken.")
+            return redirect("/signup/")
+        else:
+            flash(f"User {username} registered successfully")
+            return redirect("/")
+
+
+@app.post("/login/")
+@handle_db_errors
+def login():
+    flash("Not implemented yet")
+    return redirect("/")
