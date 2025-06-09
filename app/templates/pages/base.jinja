@@ -24,7 +24,7 @@ Base template
 
     <script src="/static/js/utils.js"></script>
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.classless.orange.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.classless.slate.min.css">
     <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 
@@ -37,7 +37,7 @@ Base template
             </ul>
 
             <ul>
-                <li><a role="button" href="/signup">Signup</a></li>
+                <li><a role="button" href="/signup/">Sign Up</a></li>
                 <li><a href="/">Home</a></li>
                 <li><a href="/things">Things</a></li>
                 <li><a href="/about">About</a></li>
@@ -46,15 +46,16 @@ Base template
     </header>
 
 
+    {# Show flash messages from any previous events #}
+    {% include "components/messages.jinja" %}
+
+
     <main>
 
         {% block content %}
         {% endblock %}
 
     </main>
-
-
-    {% include "components/messages.jinja" %}
 
 
     {# Show debug info. Comment this out if not needed #}
