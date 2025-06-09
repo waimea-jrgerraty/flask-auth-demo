@@ -26,6 +26,20 @@ window.onload = (event) => {
             }
         });
     });
-
 };
+
+document.addEventListener("DOMContentLoaded", () => {
+    const successMessages = document.querySelectorAll('#messages .message.success');
+
+    successMessages.forEach((message) => {
+        setTimeout(() => {
+            message.classList.add('fade-out');
+        }, 3000); // 3 seconds before fade starts
+
+        // Optional: remove element from DOM after animation
+        message.addEventListener('animationend', () => {
+            message.remove();
+        });
+    });
+});
 

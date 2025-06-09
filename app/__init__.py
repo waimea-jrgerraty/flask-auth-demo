@@ -2,7 +2,7 @@
 # App Creation and Launch
 # ===========================================================
 
-from flask import Flask, render_template, request, flash, redirect
+from flask import Flask, render_template, flash, redirect, session, request
 from werkzeug.security import generate_password_hash, check_password_hash
 import html
 
@@ -71,7 +71,6 @@ def show_one_thing(id):
         """
         values = [id]
         result = client.execute(sql, values)
-        print("AAAAAAAAAAA:", result)
 
         # Did we get a result?
         if result.rows:
@@ -155,14 +154,45 @@ def register_user():
         values = [name, username, hash]
         result = client.execute(sql, values)
         if result.rows_affected == 0:
-            flash("Username already taken.")
+            flash("Username already taken.", "error")
             return redirect("/signup/")
         else:
-            flash(f"User {username} registered successfully")
+            # Handle session
+            session["userid"] = result.last_insert_rowid
+            session["username"] = username
+
+            flash(f"User {username} registered successfully", "success")
             return redirect("/")
 
 
 @app.post("/login/")
 def login():
-    flash("Not implemented yet")
-    return redirect("/")
+    # Get the data from the form
+    username = request.form.get("username")
+    password = request.form.get("password")
+
+    # Sanitise the inputs
+    username = html.escape(username)
+
+    with connect_db() as client:
+        sql = "SELECT id, hash FROM users WHERE username=?"
+        values = [username]
+        result = client.execute(sql, values)
+
+        if result.rows:
+            user = result.rows[0]
+            hash = user["hash"]
+
+            if check_password_hash(hash, password):
+                # Handle session
+                session["userid"] = user["id"]
+                session["username"] = username
+
+                flash(f"Welcome {username}!", "success")
+                return redirect("/")
+            else:
+                flash("Incorrect credentials.", "error")
+                return redirect("/login/")
+        else:
+            flash(f"Account with username {username} not found!", "error")
+            return redirect("/login/")

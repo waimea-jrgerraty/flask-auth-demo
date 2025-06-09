@@ -33,8 +33,12 @@ Base template
     <header>
         <nav>
             <ul>
-                <li><strong><a href="/">Flask App Demo</a></strong></li>
+                <li><strong><a href="/"><img src="../../static/images/icon.svg">Flask App Demo</a></strong></li>
             </ul>
+
+            {% if session.username %}
+            <p>Welcome, {{session.username}} </p>
+            {% endif %}
 
             <ul>
                 <li><a role="button" href="/signup/">Sign Up</a></li>
