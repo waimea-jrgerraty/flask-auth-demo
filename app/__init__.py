@@ -107,10 +107,12 @@ def add_a_thing():
     # Sanitise the inputs
     name = html.escape(name)
 
+    assert session["userid"]
+
     with connect_db() as client:
         # Add the thing to the DB
-        sql = "INSERT INTO things (name) VALUES (?)"
-        values = [name]
+        sql = "INSERT INTO things (name, userid) VALUES (?, ?)"
+        values = [name, session["userid"]]
         client.execute(sql, values)
 
         # Go back to the home page
@@ -124,10 +126,15 @@ def add_a_thing():
 @app.get("/delete/<int:id>")
 def delete_a_thing(id):
     with connect_db() as client:
-        # Delete the thing from the DB
-        sql = "DELETE FROM things WHERE id=?"
-        values = [id]
-        client.execute(sql, values)
+        # Attempt to delete only if the current user owns the thing
+        sql = "DELETE FROM things WHERE id = ? AND userid = ?"
+        values = [id, session["userid"]]
+        result = client.execute(sql, values)
+
+        # Check if anything was actually deleted
+        if result.rows_affected == 0:
+            flash("Not authorized or item not found.", "error")
+            return redirect(f"/thing/{id}")
 
         # Go back to the home page
         flash("Thing deleted", "warning")
@@ -136,6 +143,9 @@ def delete_a_thing(id):
 
 @app.post("/register/")
 def register_user():
+    if session["userid"] != None:
+        return redirect("/")
+
     # Get the data from the form
     name = request.form.get("name")
     username = request.form.get("username")
@@ -167,6 +177,9 @@ def register_user():
 
 @app.post("/login/")
 def login():
+    if session["userid"] != None:
+        return redirect("/")
+
     # Get the data from the form
     username = request.form.get("username")
     password = request.form.get("password")
@@ -196,3 +209,10 @@ def login():
         else:
             flash(f"Account with username {username} not found!", "error")
             return redirect("/login/")
+
+
+@app.get("/logout/")
+def logout():
+    session["userid"] = None
+    session["username"] = None
+    return redirect("/")
